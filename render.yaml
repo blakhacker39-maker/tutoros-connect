@@ -1,0 +1,31 @@
+# Static entry only. No web-server instance, database, disk or paid plan.
+services:
+  - type: web
+    name: tutoros-connect
+    runtime: static
+    branch: main
+    buildCommand: 'echo "TutorOS static entry: no dependencies"'
+    staticPublishPath: site
+    autoDeployTrigger: "off"
+    envVars:
+      - key: SKIP_INSTALL_DEPS
+        value: "true"
+    headers:
+      - path: /*
+        name: Referrer-Policy
+        value: no-referrer
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /config.json
+        name: Cache-Control
+        value: no-store
+      - path: /config.json
+        name: Access-Control-Allow-Origin
+        value: "*"
+      - path: /protocol.js
+        name: Access-Control-Allow-Origin
+        value: "*"
