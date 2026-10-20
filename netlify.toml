@@ -1,0 +1,26 @@
+# Publish only the existing static entry page. No functions, database or proxy.
+[build]
+  publish = "site"
+  command = "echo 'TutorOS: prebuilt static page; no dependencies'"
+  # 0 cancels a build, 1 permits it. Route updates must not redeploy the site.
+  ignore = 'if [ -n "$BRANCH" ] && [ "$BRANCH" != "main" ]; then exit 0; fi; if [ "$CONTEXT" = "deploy-preview" ]; then exit 0; fi; if [ -z "$CACHED_COMMIT_REF" ] || [ -z "$COMMIT_REF" ]; then exit 1; fi; git diff --quiet "$CACHED_COMMIT_REF" "$COMMIT_REF" -- site netlify.toml && exit 0; exit 1'
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Referrer-Policy = "no-referrer"
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    X-Robots-Tag = "noindex, nofollow"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+[[headers]]
+  for = "/config.json"
+  [headers.values]
+    Cache-Control = "no-store"
+    Access-Control-Allow-Origin = "*"
+
+[[headers]]
+  for = "/protocol.js"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
