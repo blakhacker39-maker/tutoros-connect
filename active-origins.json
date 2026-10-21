@@ -1,9 +1,1 @@
-{
-    "protocol":  1,
-    "installationId":  "b281dfc1-abcb-4a5f-9656-f22a1f7cf81a",
-    "generatedAt":  0,
-    "expiresAt":  0,
-    "routes":  [
-
-               ]
-}
+{"protocol":1,"revision":1792566888145,"installationId":"b281dfc1-abcb-4a5f-9656-f22a1f7cf81a","generatedAt":1792566889743,"expiresAt":1792567789743,"routes":[]}
