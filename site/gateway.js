@@ -1,4 +1,4 @@
-import {readInvitation,registryUrl,validateManifest,chooseRoute,targetUrl} from './protocol.js';
+import {readInvitation,registryUrl,validateManifest,chooseRoute,targetUrl,probe} from './protocol.js';
 const REPOSITORY = 'blakhacker39-maker/tutoros-connect';
 const status = document.querySelector('#status'), retry = document.querySelector('#retry');
 let config, credentials, cachedRoutes, fetchedAt=0, running=false, attempts=0, timer;
@@ -31,11 +31,12 @@ async function connect() {
       cachedRoutes=value; fetchedAt=Date.now();
     }
     const routes=validateManifest(cachedRoutes,config.installationId);
-    const winner=await chooseRoute(routes,config.installationId,credentials);
+    const winner=await chooseRoute(routes,config.installationId,credentials,(origin,id,c)=>probe(origin,id,c,{publicKey:config.publicKey}));
     // Tokens remain in the URL fragment, not in public-host query strings.
     location.replace(targetUrl(winner,credentials,gateway));
     retryAllowed=false;
   } catch(e) {
+    if(e.code==='ACCESS_DENIED')retryAllowed=false;
     status.textContent=e.message || 'Не удалось подключиться.';
     if(!credentials) retryAllowed=false;
   } finally {

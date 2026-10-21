@@ -1,97 +1,65 @@
-// tutorOS Connect: compatible with the reviewed protocol-1 board endpoints.
+export const protocol=1;
+export const gateway='https://remarkable-gelato-57ae60.netlify.app/';
+export const repository='blakhacker39-maker/tutoros-connect';
+export const registry=`https://raw.githubusercontent.com/${repository}/routes/active-origins.json`;
+export function gatewayUrl(value){return value===gateway?gateway:'';}
 export function safeOrigin(value) {
-  try {
-    const u = new URL(value);
-    if (u.protocol !== 'https:' || u.username || u.password || u.port || u.pathname !== '/' || u.search || u.hash) return '';
-    return /(?:\.(?:ru|nl)\.tuna\.am|\.a\.tuna\.free|\.a\.2na\.am|\.ts\.net|\.lhr\.life|\.localhost\.run)$/.test(u.hostname) ? u.origin : '';
-  } catch { return ''; }
+  try {const u=new URL(value);return u.protocol==='https:'&&!u.username&&!u.password&&!u.port&&u.pathname==='/'&&!u.search&&!u.hash&&/(?:\.(?:ru|nl)\.tuna\.am|\.a\.tuna\.free|\.a\.2na\.am|\.ts\.net|\.lhr\.life|\.localhost\.run)$/.test(u.hostname)?u.origin:'';} catch{return '';}
 }
-export function validateManifest(m, installationId, now = Date.now()) {
-  if (m?.protocol !== 1 || m.installationId !== installationId ||
-      !Number.isFinite(m.generatedAt) || !Number.isFinite(m.expiresAt) ||
-      m.generatedAt > now + 30000 || m.expiresAt <= now ||
-      m.expiresAt <= m.generatedAt || m.expiresAt - m.generatedAt > 900000 ||
-      !Array.isArray(m.routes) || m.routes.length > 8) throw Error('Список подключений устарел. Ожидаем преподавателя.');
-  const seen = new Set();
-  return m.routes.filter(r => {
-    if (!r || !safeOrigin(r.origin) || !Number.isFinite(r.priority) || seen.has(r.origin)) return false;
-    seen.add(r.origin); return true;
-  }).sort((a, b) => a.priority - b.priority);
+export function validateManifest(m,installationId,now=Date.now()) {
+  if(m?.protocol!==protocol||m.installationId!==installationId||!Number.isFinite(m.generatedAt)||!Number.isFinite(m.expiresAt)||m.generatedAt>now+30000||m.expiresAt<=now||m.expiresAt<=m.generatedAt||m.expiresAt-m.generatedAt>900000||!Array.isArray(m.routes)||m.routes.length>8) throw Error('Сведения о подключении устарели');
+  const seen=new Set();return m.routes.filter(r=>{if(!r||!safeOrigin(r.origin)||!Number.isFinite(r.priority)||seen.has(r.origin))return false;seen.add(r.origin);return true;}).sort((a,b)=>a.priority-b.priority);
 }
-export function readInvitation(hash) {
-  const p = new URLSearchParams(hash.replace(/^#/, ''));
-  const valid = s => typeof s === 'string' && /^[\w-]{22,64}$/.test(s);
-  if (!valid(p.get('room')) || !valid(p.get('invite'))) throw Error('Откройте персональную ссылку преподавателя или QR занятия.');
-  const lesson = p.get('lesson') || '', resume = p.get('resume') || '';
-  if (lesson && !/^[\w-]{1,100}$/.test(lesson)) throw Error('Некорректный номер урока в ссылке.');
-  if (resume && !/^[\w-]{1,512}$/.test(resume)) throw Error('Некорректные данные восстановления.');
-  return {roomId: p.get('room'), inviteToken: p.get('invite'), lesson, resume};
-}
-export function registryUrl(config, expectedRepository, now = Date.now()) {
-  const expected = `https://raw.githubusercontent.com/${expectedRepository}/routes/active-origins.json`;
-  if (config.publishRepository !== expectedRepository || config.manifest !== expected) throw Error('Адрес реестра не совпадает с настройкой сайта.');
-  // Shared one-minute cache key, never one unique URL for every student/request.
-  const u = new URL(expected); u.searchParams.set('v', Math.floor(now / 60000)); return u.href;
-}
-export function targetUrl(origin, credential, gateway) {
-  if (!safeOrigin(origin)) throw Error('Недопустимый маршрут.');
-  const u = new URL('/student/' + credential.roomId, origin);
-  u.hash = new URLSearchParams({invite: credential.inviteToken, gateway,
-    ...(credential.lesson ? {lesson: credential.lesson} : {}),
-    ...(credential.resume ? {resume: credential.resume} : {})}).toString();
-  return u.href;
-}
-function combinedSignal(timeoutMs, signal) {
-  if (signal?.aborted) throw Error('Проверка отменена.');
-  const c = new AbortController(), stop = () => c.abort();
-  const t = setTimeout(stop, timeoutMs); signal?.addEventListener('abort', stop, {once:true});
-  return {signal:c.signal, dispose(){clearTimeout(t);signal?.removeEventListener('abort',stop);}};
-}
-export async function probe(origin, installationId, credential,
-  {fetchImpl=fetch, WebSocketImpl=WebSocket, timeoutMs=6000, signal}={}) {
-  if (!safeOrigin(origin)) throw Error('Недопустимый маршрут.');
-  const nonce = crypto.randomUUID(), control = combinedSignal(timeoutMs, signal);
-  let health;
-  try {
-    const r = await fetchImpl(`${origin}/teacheros-api/connect/challenge?nonce=${nonce}`, {
-      cache:'no-store', credentials:'omit', redirect:'error', signal:control.signal,
-      headers:{'tuna-skip-browser-warning':'1'}
-    });
-    if (!r.ok || !r.headers.get('content-type')?.includes('application/json')) throw Error('Сервер не отвечает.');
-    const text = await r.text(); if (text.length > 8192) throw Error('Некорректный ответ сервера.');
-    health = JSON.parse(text);
-  } finally { control.dispose(); }
-  if (health.service !== 'TeacherOS' || health.nonce !== nonce || health.installationId !== installationId || health.protocol !== 1) throw Error('Маршрут ведёт к другой установке TutorOS.');
-  if (signal?.aborted) throw Error('Проверка отменена.');
-  await new Promise((resolve,reject) => {
-    let done=false;
-    const ws = new WebSocketImpl(origin.replace('https:','wss:') + '/ws?connect-probe=1');
-    const finish = error => {
-      if(done) return; done=true; clearTimeout(timer); signal?.removeEventListener('abort',cancel);
-      try { ws.close(); } catch { /* failed opening handshake */ }
-      error ? reject(error) : resolve();
-    };
-    const cancel = () => finish(Error('Проверка отменена.'));
-    const timer = setTimeout(() => finish(Error('Совместная доска не отвечает.')), timeoutMs);
-    ws.onopen = () => ws.send(JSON.stringify({type:'connect-probe',payload:{roomId:credential.roomId,inviteToken:credential.inviteToken,nonce}}));
-    ws.onmessage = e => {
-      try {
-        if (String(e.data).length > 8192) throw Error();
-        const m=JSON.parse(e.data);
-        if(m.type==='connect-ready' && m.nonce===nonce && m.installationId===installationId && m.protocol===1) finish();
-        else finish(Error('Доступ к комнате не подтверждён.'));
-      } catch { finish(Error('Некорректный ответ совместной доски.')); }
-    };
-    ws.onerror = () => finish(Error('Совместная доска недоступна.'));
-    ws.onclose = () => { if(!done) finish(Error('Соединение прервано.')); };
-    signal?.addEventListener('abort',cancel,{once:true}); if(signal?.aborted) cancel();
+export async function probe(origin,installationId,credential,{fetchImpl=fetch,WebSocketImpl=WebSocket,timeoutMs=8000,signal,publicKey}={}) {
+  if(!safeOrigin(origin))throw Error('Недопустимый адрес');
+  const nonce=crypto.randomUUID();
+  const response=await fetchImpl(`${origin}/teacheros-api/connect/challenge?nonce=${nonce}`,{cache:'no-store',redirect:'error',signal:AbortSignal.any([AbortSignal.timeout(timeoutMs),...(signal?[signal]:[])]),headers:{'tuna-skip-browser-warning':'1'}});
+  if(!response.ok||!response.headers.get('content-type')?.includes('application/json'))throw Error('Сервер недоступен');
+  const health=await response.json();if(health.service!=='TeacherOS'||health.nonce!==nonce||health.installationId!==installationId||health.protocol!==protocol)throw Error('Другой сервер');
+  await verifyProof(health,origin,publicKey);
+  await new Promise((resolve,reject)=>{
+    const socket=new WebSocketImpl(origin.replace('https:','wss:')+'/ws?connect-probe=1');let done=false;
+    const finish=error=>{if(done)return;done=true;clearTimeout(timer);signal?.removeEventListener('abort',cancel);if(error&&socket.terminate)socket.terminate();else socket.close();if(error)reject(error);else resolve();};
+    const cancel=()=>finish(Error('Проверка отменена'));
+    const timer=setTimeout(()=>finish(Error('Совместная доска не отвечает')),timeoutMs);
+    socket.onopen=()=>socket.send(JSON.stringify({type:'connect-probe',payload:{...credential,nonce}}));
+    socket.onmessage=e=>{try{const m=JSON.parse(e.data);if(m.type==='connect-ready'&&m.nonce===nonce&&m.installationId===installationId&&m.protocol===protocol)finish();else finish(Error('Доступ к комнате не подтверждён'));}catch{finish(Error('Некорректный ответ'));}};
+    socket.onerror=()=>finish(Error('WSS недоступен'));socket.onclose=e=>{if(!done){const error=Error('Соединение закрыто');if(e.code===1008)error.code='ACCESS_DENIED';finish(error);}};
+    signal?.addEventListener('abort',cancel,{once:true});if(signal?.aborted)cancel();
   });
   return origin;
 }
-export async function chooseRoute(routes, installationId, credential, probeFn=probe) {
-  for (const route of routes) {
-    try { return await probeFn(route.origin, installationId, credential); }
-    catch { /* A different verified route may still be available. */ }
-  }
+export function invitation(gateway,roomId,invite,lesson='',resume='') {
+  const u=new URL(gateway);u.hash=new URLSearchParams({room:roomId,invite,...(lesson?{lesson}:{}),...(resume?{resume}:{})}).toString();return u.href;
+}
+
+export function manifestUrl(value, entry, now=Date.now()) {
+  if(!gatewayUrl(entry)||value!==registry)throw Error('Адрес реестра не совпадает с настройкой сайта');
+  const url=new URL(registry);url.searchParams.set('v',Math.floor(now/60000));return url.href;
+}
+export function registryUrl(config, expectedRepository=repository, now=Date.now()){
+  if(expectedRepository!==repository||config.publishRepository!==repository)throw Error('Недопустимый реестр');
+  return manifestUrl(config.manifest,gateway,now);
+}
+export function readInvitation(hash){
+  const p=new URLSearchParams(hash.replace(/^#/,''));const valid=s=>typeof s==='string'&&/^[\w-]{22,64}$/.test(s);
+  if(!valid(p.get('room'))||!valid(p.get('invite')))throw Error('Откройте персональную ссылку преподавателя или QR занятия.');
+  const lesson=p.get('lesson')||'',resume=p.get('resume')||'';
+  if(lesson&&!/^[\w-]{1,100}$/.test(lesson)||resume&&!/^[\w-]{1,512}$/.test(resume))throw Error('Некорректные данные восстановления');
+  return {roomId:p.get('room'),inviteToken:p.get('invite'),lesson,resume};
+}
+export function targetUrl(origin,c,entry){
+  if(!safeOrigin(origin)||!gatewayUrl(entry))throw Error('Недопустимый маршрут');
+  const u=new URL('/student/'+c.roomId,origin);u.hash=new URLSearchParams({invite:c.inviteToken,gateway:entry,...(c.lesson?{lesson:c.lesson}:{}),...(c.resume?{resume:c.resume}:{})}).toString();return u.href;
+}
+export async function chooseRoute(routes,id,credential,probeFn=probe){
+  for(const route of routes){try{return await probeFn(route.origin,id,credential);}catch(error){if(error.code==='ACCESS_DENIED')throw error;}}
   throw Error('Нет доступного подключения. Дождитесь преподавателя и повторите вход.');
+}
+export function proofPayload(health){return JSON.stringify([protocol,health.installationId,health.instanceId,health.origin,health.nonce,health.issuedAt]);}
+export async function verifyProof(health,origin,publicKey,now=Date.now()){
+  if(health.origin!==origin||!Number.isFinite(health.issuedAt)||Math.abs(now-health.issuedAt)>30000||!publicKey||publicKey.kty!=='EC'||publicKey.crv!=='P-256'||publicKey.d||!/^[A-Za-z0-9_-]{86}$/.test(health.signature||''))throw Error('Подлинность подключения не подтверждена');
+  const key=await crypto.subtle.importKey('jwk',publicKey,{name:'ECDSA',namedCurve:'P-256'},false,['verify']);
+  const signature=Uint8Array.from(atob(health.signature.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));
+  if(!await crypto.subtle.verify({name:'ECDSA',hash:'SHA-256'},key,signature,new TextEncoder().encode(proofPayload(health))))throw Error('Подпись подключения не совпадает');
 }

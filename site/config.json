@@ -1,7 +1,13 @@
 {
-    "schema":  1,
-    "enabled":  false,
-    "installationId":  "b281dfc1-abcb-4a5f-9656-f22a1f7cf81a",
-    "publishRepository":  "blakhacker39-maker/tutoros-connect",
-    "manifest":  "https://raw.githubusercontent.com/blakhacker39-maker/tutoros-connect/routes/active-origins.json"
+  "schema": 1,
+  "enabled": false,
+  "installationId": "b281dfc1-abcb-4a5f-9656-f22a1f7cf81a",
+  "publishRepository": "blakhacker39-maker/tutoros-connect",
+  "manifest": "https://raw.githubusercontent.com/blakhacker39-maker/tutoros-connect/routes/active-origins.json",
+  "publicKey": {
+    "kty": "EC",
+    "x": "sahObEKnWOyQWJuvCTLs8SKVcdZ0hIlHtTS2azq126A",
+    "y": "0su3o7YmKNwf9N0T1FFidcuN1KL4M_8mVW0p1xPYCAU",
+    "crv": "P-256"
+  }
 }
