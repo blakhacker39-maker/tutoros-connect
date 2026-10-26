@@ -1,1 +1,1 @@
-{"protocol":1,"revision":1793007160917,"installationId":"b281dfc1-abcb-4a5f-9656-f22a1f7cf81a","generatedAt":1793007168187,"expiresAt":1793008068187,"routes":[]}
+{"protocol":1,"revision":1793007160922,"installationId":"b281dfc1-abcb-4a5f-9656-f22a1f7cf81a","generatedAt":1793007252121,"expiresAt":1793008152121,"routes":[{"provider":"tailscale","origin":"https://win-1ad0ip3h5h3.tail2cdc50.ts.net","priority":1}]}
