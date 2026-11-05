@@ -1,1 +1,1 @@
-{"protocol":1,"revision":1793912928866,"installationId":"b281dfc1-abcb-4a5f-9656-f22a1f7cf81a","generatedAt":1793913900418,"expiresAt":1793914800418,"routes":[{"provider":"tailscale","origin":"https://win-1ad0ip3h5h3.tail2cdc50.ts.net","priority":0}]}
+{"protocol":1,"revision":1793912929272,"installationId":"b281dfc1-abcb-4a5f-9656-f22a1f7cf81a","generatedAt":1793914203437,"expiresAt":1793915103437,"routes":[{"provider":"tailscale","origin":"https://win-1ad0ip3h5h3.tail2cdc50.ts.net","priority":0}]}
