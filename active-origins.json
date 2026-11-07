@@ -1,1 +1,1 @@
-{"protocol":1,"revision":1794064324443,"installationId":"b281dfc1-abcb-4a5f-9656-f22a1f7cf81a","generatedAt":1794064324974,"expiresAt":1794065224974,"routes":[]}
+{"protocol":1,"revision":1794064324566,"installationId":"b281dfc1-abcb-4a5f-9656-f22a1f7cf81a","generatedAt":1794064388241,"expiresAt":1794065288241,"routes":[{"provider":"tailscale","origin":"https://win-1ad0ip3h5h3.tail2cdc50.ts.net","priority":0},{"provider":"cloudflared","origin":"https://phantom-paste-graham-marco.trycloudflare.com","priority":1}]}
