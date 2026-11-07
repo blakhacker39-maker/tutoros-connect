@@ -1,1 +1,1 @@
-{"protocol":1,"revision":1794039431854,"installationId":"b281dfc1-abcb-4a5f-9656-f22a1f7cf81a","generatedAt":1794040287206,"expiresAt":1794041187206,"routes":[{"provider":"tailscale","origin":"https://win-1ad0ip3h5h3.tail2cdc50.ts.net","priority":0},{"provider":"cloudflared","origin":"https://priced-tyler-maritime-escape.trycloudflare.com","priority":1}]}
+{"protocol":1,"revision":1794048729784,"installationId":"b281dfc1-abcb-4a5f-9656-f22a1f7cf81a","generatedAt":1794048730284,"expiresAt":1794049630284,"routes":[]}
